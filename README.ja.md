@@ -18,7 +18,7 @@ LLM・音声合成・検索のどれも、自分の PC とキー不要の公開 
 
 [![デモ動画（YouTube）](https://img.youtube.com/vi/CM0_ckjqNqc/maxresdefault.jpg)](https://youtu.be/CM0_ckjqNqc)
 
-https://youtu.be/CM0_ckjqNqc
+https://youtu.be/CM0_ckjqNqc（日本語版・音声あり）
 
 ## 本プロジェクトの位置づけ
 
@@ -40,15 +40,17 @@ https://youtu.be/CM0_ckjqNqc
 
 - Windows 11（Linux・macOS でも `go.sh` で動く作りだが、作者が確かめているのは Windows のみ）
 - Python 3.11 以上（作者は 3.14 で確認）
-- OpenAI 互換の LLM サーバ（SGLang / vLLM / Ollama など）。作者は gemma-4-31B（NVFP4）と qwen3.8:27b で確認している。
-  6人分の挙手を並列に投げるので、並列リクエストに強いサーバ（SGLang / vLLM）のほうが返事が早い
+- OpenAI 互換の LLM サーバ（SGLang / Ollama など）。作者は gemma-4-31B（NVFP4）と qwen3.8:27b で確認している。
+  キャラとして自然に喋るのは gemma-4-31B のほうが上手だった（qwen3.8:27b は内容は合っていても言葉づかいが崩れることが多い）。
+  vLLM 用の設定（`engine = "vllm"`）もあるが、作者は試していない。
+  6人分の挙手を並列に投げるので、並列リクエストに強いサーバ（SGLang）のほうが返事が早い
 - [VOICEVOX](https://voicevox.hiroshiba.jp/)（日本語版の声。英語版は不要）
 - ネット接続（検索・ニュース・天気を使う場合。どれもキーは要らない。切っても動く）
 
 ## 機能
 
 - 画面: Ursina（3D キャラ5人＋6人目・会話ログ・入力欄）
-- LLM: OpenAI 互換サーバ（SGLang / vLLM / Ollama）
+- LLM: OpenAI 互換サーバ（SGLang / Ollama など）
 - 音声: VOICEVOX ENGINE
 - 検索: Wikipedia ＋ Google ニュースの RSS 検索（既定。どちらもキー不要）/ Brave Search API / SearXNG。ユーザーへ最初に答える分身と、話し込み中の各ラウンドの最初の話者がツールコーリングで使う
 - ニュース: RSS（NHK・Yahoo!・GIGAZINE など）を裏で読み、分身がときどき「さっきネットで見かけた」話題を自分から持ち込む
@@ -239,7 +241,7 @@ UI スレッド (Ursina)  ←─ イベントキュー ─┬─ brain スレッ
 接続中の LLM そのものが、町はずれの電気室から話す子（名前は「イオ」）。
 
 - どのモデルで動いていても同じ1人。名前・見た目・声は `[meta.cast]` に1つだけ書き、記憶・好感度・気分の id も `llm` の1つ。
-  モデル名は接続先から自動で取る（SGLang は `/get_model_info` の重みのパス、vLLM は `root`、Ollama は model 名。取れなければ `[llm.<名前>] display_model`）
+  モデル名は接続先から自動で取る（SGLang は `/get_model_info` の重みのパス、Ollama は model 名、vLLM は `root`（未確認）。取れなければ `[llm.<名前>] display_model`）
 - 起動時に `meta_runs` テーブル（モデル名ごとの動いた記録）と比べ、「初めて動いた」「前回は別のモデルだった」「このモデルは初めて」「前に動いていたのは3日前」を本人の材料にする
 - 本人のプロンプトにだけ、本物の実行状況（モデル名・temperature・見えている会話の範囲・直前のセリフの生成秒数とトークン速度・失敗の回数・検索の残りなど）を「# いまの実行状況」として入れる。
   入れるのは、きっかけ（生成が遅かった・止まった・だれかが忘れた・ユウがしくみのことを聞いた・モデルが替わった・検索が尽きた）のあるラウンドと、`stats_chance` に当たったラウンドだけ

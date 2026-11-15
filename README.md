@@ -42,8 +42,10 @@ They have nothing to do with real people or organizations, and none of it is che
 
 - Windows 11 (`go.sh` is written for Linux/macOS too, but the author has only tested Windows)
 - Python 3.11 or newer (tested with 3.14)
-- An OpenAI-compatible LLM server (SGLang / vLLM / Ollama, etc.). Tested with gemma-4-31B (NVFP4) and qwen3.8:27b.
-  Six hand-raise requests go out in parallel, so a server that handles parallel requests well (SGLang / vLLM) answers faster.
+- An OpenAI-compatible LLM server (SGLang / Ollama, etc.). Tested with gemma-4-31B (NVFP4) and qwen3.8:27b.
+  gemma-4-31B was better at staying in character (qwen3.8:27b often got the content right but slipped out of the girls' speech styles).
+  There is a vLLM setting too (`engine = "vllm"`), but the author hasn't tried it.
+  Six hand-raise requests go out in parallel, so a server that handles parallel requests well (SGLang) answers faster.
   See [LLM server (SGLang) setup](#llm-server-sglang-setup)
 - [VOICEVOX](https://voicevox.hiroshiba.jp/) (voices for the Japanese edition; not needed for the English edition)
 - An internet connection for search, news and weather (none of them need a key; the app still runs with them off)
@@ -51,7 +53,7 @@ They have nothing to do with real people or organizations, and none of it is che
 ## Features
 
 - Display: Ursina (five 3D characters plus the sixth, a conversation log and an input box)
-- LLM: any OpenAI-compatible server (SGLang / vLLM / Ollama)
+- LLM: any OpenAI-compatible server (SGLang / Ollama, etc.)
 - Voice: VOICEVOX ENGINE (Japanese edition) / Kokoro-82M on the CPU (English edition)
 - Search: Wikipedia and Google News RSS search (default; no keys needed) / Brave Search API / SearXNG. Used through tool calling by the girl who answers you first, and by the first speaker of each round while the girls keep talking
 - News: RSS feeds (NHK / Yahoo! / GIGAZINE etc. for Japanese; BBC / NPR / Ars Technica for English) are read in the background, and the girls sometimes bring up a story they "just saw online"
@@ -265,7 +267,7 @@ Prompts are ordered "shared part (setting, everyone's introductions, conversatio
 The connected LLM itself, talking from the power room at the edge of town (her name is Io).
 
 - She's the same one girl whatever model she runs on. Her name, look and voice are written once in `[meta.cast]`, and her memory, affinity and mood all use the single id `llm`.
-  The model name is taken from the server automatically (SGLang: the weights path from `/get_model_info`; vLLM: `root`; Ollama: the model name; otherwise `[llm.<name>] display_model`)
+  The model name is taken from the server automatically (SGLang: the weights path from `/get_model_info`; Ollama: the model name; vLLM: `root` (untested); otherwise `[llm.<name>] display_model`)
 - At startup she is compared against the `meta_runs` table (a record of runs per model name), and "first time running", "last time it was a different model", "first time on this model" or "the last run was 3 days ago" become material for her
 - Only her prompt gets the real run status (model name, temperature, how much of the conversation she can see, the last line's generation time and token speed, failure counts, search budget left, etc.) as "# current run status".
   It goes in only on rounds with a cue (generation was slow, it stalled, someone forgot something, you asked how things work, the model changed, searches ran out) and on rounds that hit `stats_chance`

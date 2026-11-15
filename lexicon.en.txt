@@ -1,0 +1,46 @@
+# Pinned pronunciations for the English edition ([kokoro] lexicon_file in config.en.toml).
+#
+#   One "word<TAB>IPA" per line. Lines starting with # and blank lines are ignored.
+#   Case doesn't matter.
+#
+# Why this exists
+#   Words missing from the dictionary get an estimated pronunciation. It never breaks, but it
+#   isn't always right (Nene comes out as "nay-nay", Io as "eye-oh"). The girls' names and words
+#   that come up all the time are pinned here.
+#
+# How to write IPA (Kokoro's symbol set)
+#   Stress marks go right before the vowel: ˈ (primary) ˌ (secondary).
+#   Diphthongs are single letters: A=eɪ  I=aɪ  O=oʊ  W=aʊ  Y=ɔɪ
+#   Common consonants: ʧ=ch  ʤ=j  ʃ=sh  ʒ=zh  θ=th (thin)  ð=th (this)  ŋ=ng  ɹ=r
+#   Unknown words are logged as WARNING with their estimated reading while the app runs;
+#   fixing that estimate and pasting it here is the quickest way.
+
+# --- the girls (Japanese names, said the Japanese way) ---
+Akari	ɑkˈɑɹi
+Shizuku	ʃizˈuku
+Ren	ɹˈɛn
+Koharu	kOhˈɑɹu
+Nene	nˈɛnɛ
+Io	ˈiO
+Yu	jˈu
+
+# --- words the sixth girl uses when she talks about models ---
+qwen	kwˈɛn
+gemma	ɡˈɛmə
+mistral	mˈɪstɹəl
+ollama	Olˈɑmə
+sglang	ˌɛsʤˈilæŋ
+vllm	vˌiˌɛlˌɛlˈɛm
+llm	ˌɛlˌɛlˈɛm
+gpu	ʤˌipˌijˈu
+onnx	ˈɑnɪks
+tokenizer	tˈOkənˌIzəɹ
+
+# --- laughing and crying sounds the girls say out loud ---
+ahaha	ɑhɑhˈɑ
+hehe	hˈihˌi
+ehehe	ˈɛhɛhˌɛ
+fufu	fˈufˌu
+uuu	ˈuː
+waaah	wˈɑː
+eep	ˈip

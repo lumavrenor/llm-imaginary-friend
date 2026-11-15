@@ -1,0 +1,82 @@
+Copyright (c) 2026 lumavrenor. All rights reserved.
+
+This software is NOT open source. The following terms apply.
+
+1. Permitted use
+   You may download, install and run this software, and modify it for your
+   own use, for personal, non-commercial purposes (for example, running it at
+   home and chatting with the characters for your own enjoyment).
+   An individual may also show the software in operation (screen and audio)
+   in videos or live streams for the purpose of introducing, reviewing or
+   explaining it. This applies regardless of whether the channel is
+   monetized, and such use is not treated as commercial use under section 2.
+   Such videos or live streams may only include conversations held with web
+   search, news and weather turned off (for example, started with
+   --no-search --no-news --no-weather), so that the characters talk only
+   about what the LLM writes itself.
+
+2. Uses that are not permitted
+   - Publishing, distributing or sharing copies of this software, in whole or
+     in part, whether modified or unmodified (including publishing a modified
+     fork).
+   - Continuously streaming or publishing the software's output as the main
+     content (such as a long-running, always-on stream).
+   - Any commercial use, including use by or on behalf of a company, use in a
+     paid product or service, or use to generate revenue.
+   The author does not respond to individual requests for permission.
+
+3. No warranty
+   This software is provided "AS IS", without warranty of any kind, express or
+   implied. In no event shall the author be liable for any claim, damages or
+   other liability arising from, out of or in connection with this software or
+   its use.
+
+4. Third-party components
+   External services (the LLM server, VOICEVOX, Wikipedia, Google News, the
+   news RSS feeds, Open-Meteo, etc.) and the third-party libraries, models and
+   binaries this software uses are subject to their own licenses and terms of
+   use, which you must check and follow separately. This also applies when
+   showing the software in videos or live streams (for example, the terms of
+   each VOICEVOX character). See the "Credits" and "Notes on videos and live
+   streams" sections of README.md (README.ja.md for Japanese).
+
+----------------------------------------------------------------------------
+
+著作権 (c) 2026 lumavrenor. All rights reserved.
+
+本ソフトウェアはオープンソースではありません。以下の条件で利用できます。
+
+1. 許可される利用
+   個人が非商用の目的（自宅で自分で動かして、キャラクターとの会話を楽しむ等）で、
+   本ソフトウェアをダウンロード・インストール・実行し、自分で使うために改変する
+   ことは自由です。
+   また、個人が本ソフトウェアの紹介・感想・技術解説を目的として、動作の様子
+   （画面・音声）を動画や配信で見せることも自由です。この場合、チャンネルの
+   収益化の有無は問わず、2の商用利用には当たらないものとします。
+   ただし、動画や配信に含めてよいのは、ネット検索・ニュース・天気予報を切った
+   状態（--no-search --no-news --no-weather を付けて起動するなど）の会話だけです。
+   キャラクターが LLM の書いた内容だけで話している状態にしてください。
+
+2. 認めていない利用
+   - 本ソフトウェアの全部または一部の複製物の公開・配布・共有
+     （改変の有無を問いません。改変版フォークの公開を含みます）
+   - 本ソフトウェアの出力そのものを主な内容とした、継続的な配信・公開
+     （長時間の常設配信など）
+   - 商用利用（企業での利用、有償の製品・サービスでの利用、収益を目的とした
+     利用を含みます）
+   個別の許諾の依頼には応じていません。
+
+3. 無保証
+   本ソフトウェアは「現状のまま」提供され、明示・黙示を問わず一切の保証は
+   ありません。本ソフトウェアまたはその利用によって生じた損害やトラブルに
+   ついて、作者は一切の責任を負いません。
+
+4. 第三者のコンポーネント
+   依存する外部サービス（LLM サーバ、VOICEVOX、Wikipedia、Google ニュース、
+   各ニュースの RSS、Open-Meteo など）および本ソフトウェアが使用するライブラリ・
+   モデル・バイナリには、それぞれ固有のライセンス・利用規約があります。各自で
+   確認し、従ってください。動画や配信で見せる場合も同様です（VOICEVOX の各
+   キャラクターの規約など）。README.ja.md（英語版は README.md）の「クレジット」と
+   「動画・配信で紹介する場合の注意」を参照してください。
+
+英語版と日本語版の間に相違がある場合は、日本語版が優先します。

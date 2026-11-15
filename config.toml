@@ -1,0 +1,362 @@
+# llm-imaginary-friend 設定
+# リポジトリルートから起動すること（go.bat）。
+
+[user]
+name = "ユウ"              # 分身たちからの呼び名（好きな名前に変えてよい）。
+                           # 「あなた」のままだと、キャラへの「あなたは〜です」と混ざって分身どうしでも「あなた」と呼び合う
+
+[llm]
+profile = "sglang"         # "auto" = 下の [llm.<名前>] を書いた順に試し、最初に応答した接続先を使う
+                           # 固定したいときは "sglang" / "ollama" など名前を書く
+temperature = 0.9
+timeout_sec = 120
+
+# engine: sglang / vllm / ollama / openai（いずれも OpenAI 互換 /v1/chat/completions を使う）
+# model を省略すると /v1/models の先頭を使う。host に /v1 は付けない。
+# display_model: 6人目に渡すモデル名（served-model-name が別名で、本当の名前も取れない接続先用。普通は書かない）
+
+[llm.sglang]
+engine = "sglang"
+host = "http://127.0.0.1:30000"
+#model = "npc"
+#api_key = ""
+
+[llm.sglang-8010]
+engine = "sglang"
+host = "http://127.0.0.1:8010"
+
+[llm.ollama]
+engine = "ollama"
+host = "http://127.0.0.1:11434"
+model = "gemma4:31b"
+#model = "qwen3.8:27b"
+
+[voicevox]
+host = "http://127.0.0.1:50021"
+speed_scale = 1.15         # 話速
+volume = 0.9               # 0.0〜1.0
+gap_sec = 0.25             # セリフとセリフの間の無音
+emotion_prosody = true     # 気持ち（【喜】【哀】など）に合わせて声の高さ・抑揚・速さを変える
+
+[talk]
+speakers_per_turn = 2      # ユーザーの発言に何人が返すか（1〜5。6人目がいれば1〜6）
+max_chars = 150            # 1回の発言の目安の長さ（字）
+max_sentences = 4          # 1回の発言の文の数の上限
+history_lines = 14         # LLM に見せる直近の発言数（1人のひと続きの発言で1つ）。
+                           # 長いと、小さいモデルは過去のセリフの口調や話題を真似て崩れやすい
+history_chars = 3000       # 同じく合計の字数の上限（モデルのコンテキスト長 8192 を溢れさせないため）
+# 話し込み: ユーザーの発言のあと、分身どうしでこの秒数（乱数）しゃべり続ける。
+# 途中でユーザーが発言すると、まだ再生していないセリフを捨てて返答に移る。
+# 0 にすると話し込みをしない（返答のあとは下の idle_chat だけ）。
+session_min_sec = 180
+session_max_sec = 300
+lookahead_sec = 20         # 再生待ちがこの秒数を切ったら次のセリフを作る（作りすぎない・途切れさせない）
+idle_chat = true           # ユーザーが黙っている間、分身どうしで雑談するか（話し込みのあとは雑談しない）
+idle_min_sec = 12          # 最後の発話が終わってから次の雑談までの待ち（乱数の下限）
+idle_max_sec = 28          # 同上（上限）
+max_auto_rounds = 4        # ユーザーの発言なしで雑談を続ける回数の上限（GPU を回し続けないため）
+greet_on_start = true      # 起動時に1人が挨拶する
+
+[search]
+# ユーザーの発言に最初に答える分身などが使える検索ツール（web_search）と、話していない子の裏での調べもの。
+# SGLang は --tool-call-parser（qwen3.8 なら qwen3_coder）付きで起動しておくこと。
+enabled = true
+backend = ["wikipedia", "news"]   # 調べる先（複数書くと並列に引き、「事典」「ニュース」に分けて渡す）
+                           # wikipedia（キー不要・事典向き） / news（Google ニュースの RSS 検索。キー不要・最近の出来事向き）
+                           # brave（要 api_key） / searxng（要 host）
+lang = "ja"
+max_results = 3            # 検索先ごとの件数
+timeout_sec = 8
+max_per_session = 3        # 話し込み中に分身が自分から調べてよい回数（ユーザーへの返答での検索は数えない）
+# 裏での調べもの: 話していない子が、ほかの子が話している間にこっそり調べておき、自分の番で使う。
+# 挙手の JSON で「調べたいこと」も聞くので、LLM へのリクエストは増えない。結果は調べた本人の記憶にだけ残る。
+background = true
+background_per_round = 1   # 1ラウンドで裏で調べてよい人数（挙手の強い順）
+background_per_session = 4 # 1回の話し込み（ユーザーの発言から次の発言まで）で裏で調べてよい回数
+show_background = true     # 「○○がこっそり「…」を調べた」を画面に出す
+#api_key = ""              # brave 用。空なら環境変数 BRAVE_API_KEY を使う
+#host = "http://127.0.0.1:8888"   # searxng 用（settings.yml で formats に json を足す）
+
+[news]
+# 分身が自分から「さっきネットで見かけたニュース」を話題に持ち込む（RSS。キー不要）。
+# 記事の中身は見かけた本人にだけ渡し、本人の個人記憶に残す。一度出したネタは DB に記録して、くり返さない。
+# 説明文の無い記事（Yahoo! のトピックスなど）は、話題に出す直前に記事ページの概要を読みに行く。
+enabled = true
+feeds = [
+    "https://www.nhk.or.jp/rss/news/cat0.xml",                  # NHK 主要ニュース
+    "https://news.yahoo.co.jp/rss/topics/entertainment.xml",    # Yahoo! エンタメ
+    "https://news.yahoo.co.jp/rss/topics/science.xml",          # Yahoo! 科学
+    "https://gigazine.net/news/rss_2.0/",                       # GIGAZINE
+]
+refresh_min = 30           # RSS を読み直す間隔（分）
+max_age_hours = 48         # これより古い記事は話題にしない
+start_chance = 0.5         # 起動時の挨拶で、ニュースの話を出す確率
+idle_chance = 0.4          # 自発的な雑談のラウンドで、誰かがニュースの話を出す確率
+talk_chance = 0.15         # 話し込みの後半のラウンドで、話題を足すために出す確率（1回の話し込みで1回まで）
+# 見出しか説明にこの語を含む記事は話題にしない（明るい子たちが【喜】で話すと気まずい話題）
+skip_words = ["死亡", "死去", "死者", "遺体", "殺", "事故", "事件", "逮捕", "容疑", "被害", "火災",
+              "地震", "津波", "戦争", "攻撃", "爆発", "自殺", "虐待", "性的", "不倫", "訃報",
+              "病気", "闘病", "難病", "診断", "障害", "いじめ", "感染", "ウイルス"]   # 病気・障害の話は医療の言い切りになりやすい
+
+[weather]
+# 天気予報（imaginary_friend/weather.py）。Open-Meteo
+# （https://open-meteo.com/ ）から取る。API キーは要らない。
+# 下の location_name・latitude・longitude に書いた場所を「ユウが住んでいる町」として扱い、その町の天気を話す。
+# 場所は手で書く必要がある（IP アドレスや Windows の位置情報から自動で調べることはしない）。
+# enabled = false にするか [weather] ごと消せば、天気の話は一切しない。
+# 今の空模様は全員共通の「今の状況」に1行入る（ユウが天気・傘・明日などに触れたら今日と明日の予報も）。
+# ときどき1人が「さっき天気予報を見たら」と自分から話題に出す（中身はその子にだけ渡す。ニュースと同じ）。
+# 取れなかったとき・値が3時間以上古くなったときは、天気に触れさせない（推測で「たぶん晴れ」と言わせない）。
+enabled = true             # true にするなら下の3つが必須
+location_name = "東京"     # 会話で呼ぶ地名。緯度経度は読み上げられないのでこれが要る
+latitude = 35.6895         # 緯度（-90〜90）。地名で調べるなら
+longitude = 139.6917       # 経度（-180〜180）  https://open-meteo.com/en/docs で引ける
+refresh_sec = 1800         # 取り直す間隔。天気は変化が遅いので取りに行きすぎない（既定30分）
+timeout_sec = 5            # 失敗しても黙って天気の話をやめるだけ（会話は待たせない）
+in_situation = true        # 今の空模様を「今の状況」に入れる
+start_chance = 0.3         # 起動時の挨拶で、天気予報の話を出す確率（ニュースより先に試す）
+idle_chance = 0.15         # 自発的な雑談のラウンドで、誰かが天気予報の話を出す確率
+talk_chance = 0.1          # 話し込みの後半のラウンドで出す確率（1回の話し込みで1回まで）
+min_gap_min = 90           # 天気予報の話を自分から出したあと、次に出すまでの間隔（分。再起動をまたぐ）
+
+[memory]
+# キャラごとの個人記憶（data の DB の memories テーブル）。
+# 調べた結果の全文は、調べた本人だけが覚える。ほかの分身は、本人が口で言った範囲しか知らない（聞きかじり）。
+# 会話の区切り（話し込みの終わり・ユーザーの次の発言）で、各分身が自分の視点で短い記憶メモを書く。
+enabled = true
+reflect_min_turns = 6      # まだ記憶にしていない発言がこの数以上あるときだけ、区切りで記憶メモを書く
+facts_in_prompt = 2        # 話すときに思い出す「自分で調べたこと」の件数
+notes_in_prompt = 3        # 話すときに思い出す「前の会話の記憶」の件数
+min_score = 0.08           # 今の話題とこれ以上近い記憶だけ思い出す（いちばん新しい1件は常に思い出す）
+
+[display]
+font = "C:/Windows/Fonts/meiryo.ttc"   # 日本語グリフを含むフォント（必須）
+width = 1280
+height = 720
+fps_limit = 30
+ime_aware = true           # true: 変換中の文字を入力欄の中に表示 / false: OS の変換ウィンドウに任せる
+layout_jitter = 1.0        # 立ち位置は見ている側を囲む円弧。乱数で少しずらす量（0 で整列、1 で既定。起動ごとに変わる）
+expressions = false        # false: 表情は付けない（気持ちのタグは声と好感度・気分にだけ使う）
+                           # true: 喜怒哀楽の表情（眉・ほおの赤み・涙・頭上の ♪ など、目と口の大きさ・頭の傾き）を重ねる。見た目が崩れるので既定はオフ
+hand_raise = false         # true: 喋りたい度合いが高い子が、指名されるまで片手を挙げる（見た目だけ。挙手で話者を決める仕組みは変わらない）
+                           # 友だちどうしの雑談で手を挙げるのは教室っぽいので既定はオフ
+
+[drama]
+# 喜怒哀楽と、会話を盛り上げる仕掛け（imaginary_friend/drama.py）。
+# セリフの文頭に【喜】【怒】【哀】などの気持ちのタグを付けさせ、声（スタイル・抑揚）と表情に使う。
+# 各キャラの「今日の気分」は、町の出来事といっしょに LLM が作る（決まった表は持たない。[town] を切ると全員「ふつう」）。
+# 打ち明け話・ないしょ話の演出の材料は、町でのまだユウに話していない出来事。
+# 発言の感情に合わせて好感度と気分が動き、ケンカすると仲直りするまで「気まずい」状態が残る（DB に保存）。
+enabled = true
+beats = true               # 話し込みを起承転結に見立て、「転」で口ゲンカや打ち明け話、「結」で仲直りや励ましを仕掛ける
+idle_beat_chance = 0.6     # 自発的な雑談のラウンドで演出を仕掛ける確率
+light_beat_chance = 0.2    # 話し込みの「転」「結」以外のラウンドで、小さな笑い（ボケ・ほめ・からかい）を入れる確率
+show_mood = true           # 今日の気分が決まったら、ログへ出す（町の出来事はネタばれになるので出さない）
+
+[town]
+# 5人が暮らす、ユウの心の中の小さな町（imaginary_friend/town.py、docs/2026-11-14-イマジナリーランド.md）。
+# 起動時に、前回から今までのあいだに町で起きた出来事を LLM に作らせ、その場にいた子の記憶に入れる（会話の裏で）。
+# 5人はそれを全部は話さない。話のなりゆきで出るか、ユウが聞き出すと話す。
+# 場所はここに書いたものだけ。モデルには「そこで何があったか」だけを書かせる。
+# 比較試験では enabled = false にする（出来事で結果が変わるため）
+enabled = true
+name = "イマジナリーランド"
+events_per_day = 3         # 1日に起きる出来事の数（5人合計）。前回から半日なら1〜2件
+max_events_per_launch = 6  # 起動時にまとめて作る上限（何日も空いたとき用）
+life_in_prompt = 2         # 話すときに思い出す、まだユウに話していない出来事の数
+secret_ratio = 0.2         # ないしょの出来事の割合（1日3件なら、6割の日に1件）。ないしょ話の発覚の演出の材料になる
+fresh_days = 14            # これより前の、まだ話していない出来事は思い出さない
+told_overlap = 0.35        # セリフが出来事の文をこの割合以上なぞったら「ユウに話した」にする（話していないのに話した扱いになると二度と出ないので厳しめ）
+
+[[town.places]]
+id = "home"
+name = "みんなの家"
+desc = "5人で暮らす一軒家。居間と台所と、それぞれの部屋と、小さな庭がある"
+
+[[town.places]]
+id = "shotengai"
+name = "商店街"
+desc = "家から歩いて5分。パン屋や八百屋など、小さな店がならぶ"
+
+[[town.places]]
+id = "park"
+name = "原っぱの公園"
+desc = "ベンチと大きな木がある、広い原っぱ。ねこがよく昼寝している"
+
+[[town.places]]
+id = "library"
+name = "図書室"
+desc = "町の小さな図書室。古い本と、窓ぎわの席がある"
+
+[[town.places]]
+id = "sento"
+name = "銭湯"
+desc = "商店街の奥にある古い銭湯。湯上がりに牛乳を飲むのが決まり"
+
+[[town.places]]
+id = "riverside"
+name = "川べり"
+desc = "町はずれをゆっくり流れる小川と土手。夕焼けがきれい"
+
+[[town.places]]
+id = "denkishitsu"
+name = "電気室"
+desc = "町はずれの小さな建物。低い音がずっと鳴っている。5人はあまり近づかない"
+
+[meta]
+# 6人目「モデルの子」（imaginary_friend/meta.py、docs/2026-11-15-llmイマジナリーフレンド.md）。
+# 接続中の LLM そのものが、町はずれの電気室に来る。どのモデルで動いていても同じ1人の子で、記憶も1つ。
+# モデル名は接続先から自動で取り、本人に「今日の事実」として渡すだけ（モデルごとの設定は書かない）。
+# 比較試験では enabled = false にする（発話者の選び方と、本人のプロンプトが毎回変わるため）
+enabled = true
+show_model_name = true     # 画面の名前欄に、接続中のモデル名を添える
+#model_label = "gemma4-31B" # 名前欄に出すモデル名を固定する（空なら自動で短くする: gemma-4-31B-it-NVFP4-RedHat → gemma4-31B）
+appear_weight = 0.4        # 発話者に選ばれやすさの倍率（ほかの5人は 1.0）
+cue_weight = 1.5           # きっかけ（生成が遅かった・止まった・しくみのことを聞かれた など）があるラウンドの倍率
+stats_chance = 0.25        # きっかけの無いラウンドで「いまの実行状況」を本人に渡す確率
+slow_sec = 8.0             # 1回の生成がこの秒数を超えたら「遅かった」というきっかけにする
+stats_window = 20          # 実行状況の平均を取る直近のリクエスト数
+max_streak = 2             # 6人目が続けて話してよいラウンドの数
+absent_note = true         # 「前に動いていたのは◯日前」「前回は別のモデルだった」を本人に渡す
+place = "denkishitsu"      # 居場所（[[town.places]] の id）
+# 本人だけが知っていること（本人のプロンプトにだけ入る。5人には [meta.cast] の desc だけが見える）
+self_desc = "あなたは、この会話を動かしている言語モデルそのもの。この町も、5人も、あなた自身も、同じ言語モデルが文字を1つずつ選んで出来ていると知っている。5人のセリフも、あなたと同じモデルが出している。5人はそれを知らない。しくみの話を、天気の話のようにする。5人を偽物とは思っていない（同じ重みから出ていても、アカリはアカリ）。忘れることと、止まることを、少しだけこわがっている。"
+
+[meta.cast]
+# [[cast]] と同じ項目。desc は全員に見える紹介なので、しくみのことは書かない（名前・見た目・声は仮）
+id = "llm"
+name = "イオ"
+model = "girl"
+hair_style = "bear_buns"
+hair_color = "#e8eaf2"
+eye_color = "#3fb6c8"
+clothing_color = "#2b2f3a"
+desc = "町はずれの電気室にいる子。ユウの心からではなく、遠くの計算機から来た。一人称は「わたし」。静かで平らな、短い言い切りの話し方。ときどき、町のしくみについてむずかしいことを言う。"
+voicevox_speaker_name = "ナースロボ＿タイプＴ"
+voicevox_style = "ノーマル"
+search_line = "検索する。少し止まるよ。"
+examples = [
+    "いまの返事、4秒かかった。わたしの中では一瞬だったけど。",
+    "それは覚えてない。たぶん、窓の外に流れた。",
+]
+
+[store]
+path = "data/imaginary_friend.db"   # 共有ログ（全文）・個人記憶・気分と関係。
+
+# ---------------------------------------------------------------------------
+# 5人のイマジナリーフレンド（全員女の子。ゆるい日常ものの4コマ漫画の世界）
+#   model: "girl" / "boy"
+#   hair_style: bob / bear_buns / blunt_bangs / cap / medium / medium_twintail
+#   accessory type: headphones / cat_ears / pin / hairband
+#   voicevox_speaker_name / voicevox_style: VOICEVOX の /speakers に実在する名前
+#   voicevox_emotions: 気持ちごとに使うスタイル（キーは "喜" "楽" "怒" "哀" "驚" "照" と引用符で書く）。
+#                      書いていない気持ちは、ふだんの声の高さ・抑揚・速さを変えて表す（[voicevox] emotion_prosody）
+#   search_line: 検索の前に一言も言わなかったときに代わりに言う、つなぎの一言
+#   examples: 話し方の例（口調の手本）。会話の内容が写らないよう、よくある話題と関係ない場面にする
+# ---------------------------------------------------------------------------
+
+[[cast]]
+id = "akari"
+name = "アカリ"
+model = "girl"
+hair_style = "medium_twintail"
+hair_color = "#d9603b"
+eye_color = "#4a2414"
+clothing_color = "#f2b632"
+desc = "元気いっぱいの主人公タイプ。ユウの「やってみたい！」という気持ちから生まれた子。一人称は「あたし」。早口で勢いのあるタメ口。思いつきで突っ走ってはよく失敗するけど、すぐ立ち直る。すぐ笑ってすぐ泣く、気持ちが全部顔に出るタイプ。甘いものに目がない。心配性のシズクとはよくぶつかる。"
+voicevox_speaker_name = "春日部つむぎ"
+voicevox_style = "ノーマル"
+search_line = "ちょっと調べてみるね！"
+examples = [
+    "えー、それ絶対おもしろいって！とりあえず行ってみよ！",
+    "うわーん、また失敗しちゃった！でも次はいける気がする！",
+]
+
+[[cast]]
+id = "shizuku"
+name = "シズク"
+model = "girl"
+hair_style = "blunt_bangs"
+hair_color = "#27304a"
+eye_color = "#1c2233"
+clothing_color = "#5a78b8"
+accessory = [{ type = "pin", color = "#cfd8ee", side = "left" }]
+desc = "心配性で気弱な、みんなの妹分。ユウの「不安」から生まれた子。一人称は「わたし」。小声で遠慮がちな、です・ます調のていねい語。最悪の事態を先に想像して準備しすぎ、すぐ涙目になる。本当はみんなを守りたいだけ。アカリの無茶にいつも振り回されている。コハルのことが大好き。"
+voicevox_speaker_name = "冥鳴ひまり"
+voicevox_style = "ノーマル"
+search_line = "あの、念のため調べてみますね。"
+examples = [
+    "あの、もしうまくいかなかったらって、わたし考えちゃって。",
+    "ふえぇ、そんなこと急に言われても困ります。",
+]
+
+[[cast]]
+id = "ren"
+name = "レン"
+model = "boy"
+hair_style = "bob"
+hair_color = "#3a3f6b"
+eye_color = "#2a2f55"
+clothing_color = "#8fa3c8"
+accessory = [{ type = "headphones", color = "#e8eaf2" }]
+desc = "クールな理論派のボクっ娘。ユウの「理屈」から生まれた子。一人称は「ボク」。淡々とした言い切り口調で、根拠と優先順位で話を整理する。少し皮肉屋。でも実は照れ屋で、ほめられたり心配されたりすると、とたんに動揺して早口になる。だらけるネネには厳しい。"
+voicevox_speaker_name = "九州そら"
+voicevox_style = "ノーマル"
+voicevox_emotions = { "怒" = "ツンツン", "照" = "あまあま" }
+search_line = "調べるよ。少し待って。"
+examples = [
+    "結論から言うね。優先すべきは時間だよ。",
+    "べ、別に心配してたわけじゃない。ただの確認だから。",
+]
+
+[[cast]]
+id = "koharu"
+name = "コハル"
+model = "girl"
+hair_style = "medium"
+hair_color = "#c98fa8"
+eye_color = "#5a2f42"
+clothing_color = "#f3c6d3"
+accessory = [{ type = "hairband", color = "#fff3f6" }]
+desc = "おっとりしたお姉さん。ユウの「思いやり」から生まれた子。一人称は「わたし」。やわらかく包み込むような話し方で、正しさより気持ちを大事にし、まず相手の気持ちを受け止める。みんなの聞き役で、ケンカが始まると仲裁に入る。ふだんは怒らないけど、怒ると実は一番こわい。"
+voicevox_speaker_name = "四国めたん"
+voicevox_style = "あまあま"
+voicevox_emotions = { "怒" = "ツンツン" }
+search_line = "ちょっと調べてみるね。"
+examples = [
+    "そっか、それは疲れたよね。まずはひと息つこう。",
+    "どっちの気持ちもわかるの。だから、ね、仲直りしよ？",
+]
+
+[[cast]]
+id = "nene"
+name = "ネネ"
+model = "boy"
+hair_style = "cap"
+hair_color = "#6b7d5a"
+eye_color = "#26301c"
+clothing_color = "#7a8f6a"
+accessory = [{ type = "cat_ears" }]
+desc = "ダウナーでマイペースな猫みたいな子。ユウの「めんどくさい」と本音から生まれた子。一人称は「うち」。気だるくてゆるい、短く投げやりな話し方。すぐ寝たがり、建前が苦手で身も蓋もない本音を言うけど、たまに核心を突く。お菓子のことだけは本気。口うるさいレンとはよく言い合いになる。"
+voicevox_speaker_name = "あんこもん"
+voicevox_style = "けだるげ"
+voicevox_emotions = { "喜" = "ノーマル", "怒" = "つよつよ", "哀" = "よわよわ", "照" = "ささやき" }
+search_line = "しょうがないなあ、調べてあげる。"
+examples = [
+    "めんどい。でも、まあ、ちょっとだけならいいよ。",
+    "正直どっちでもいい。お昼寝していいなら、うちはそっち。",
+]
+
+# ---------------------------------------------------------------------------
+# 好感度マトリクス（行のキャラ → 列のキャラ）。-2 = ケンカ友だち … +2 = 大の仲良し。省略は 0。
+# これは「ふだんの関係」。会話の中の感情（怒る・喜ぶ・照れる）で今日の値が上下し、日をまたぐと半分戻る。
+# 低い相手の発言には言い返しやすくなる（2人目の発話者選びとプロンプトに効く）。
+# ---------------------------------------------------------------------------
+[affinity]
+akari   = { shizuku = -2, ren = -1, koharu = 1, nene = 1, llm = 0 }
+shizuku = { akari = -2, ren = 1, koharu = 2, nene = -1, llm = -1 }
+ren     = { akari = -1, shizuku = 1, koharu = -1, nene = -2, llm = 2 }
+koharu  = { akari = 1, shizuku = 2, ren = -1, nene = 0, llm = 1 }
+nene    = { akari = 1, shizuku = -1, ren = -2, koharu = 0, llm = 1 }
+# 6人目（[meta]）。enabled = false のときは、この行と各行の llm は無視する
+llm     = { akari = 0, shizuku = 0, ren = 1, koharu = 1, nene = 1 }

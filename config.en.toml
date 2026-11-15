@@ -1,0 +1,354 @@
+# llm-imaginary-friend: English edition settings
+# Start from the repository root:  go.bat en   (Git Bash / Linux / macOS: ./go.sh en)
+#
+# This file is the English counterpart of config.toml (the Japanese edition). The two keep
+# separate databases, so the girls' Japanese and English memories never mix.
+# Speech is synthesized by Kokoro-82M on the CPU (no VOICEVOX needed). The model files
+# (about 340 MB) are downloaded into kokoro_models/ on the first run.
+
+[locale]
+lang = "en"                # "ja" / "en". Language of the prompts, the girls' speech and the UI text
+
+[tts]
+backend = "kokoro"         # "voicevox" (Japanese) / "kokoro" (English)
+
+[kokoro]
+model_dir = "kokoro_models"     # where kokoro-v1.0.onnx / voices-v1.0.bin / config.json live (fetched if missing)
+threads = 2                # onnxruntime threads. 0 lets onnxruntime decide. Giving it every core slows the LLM and the 3D view
+lexicon_file = "lexicon.en.txt" # words whose pronunciation is pinned (one "word<TAB>IPA" per line). Names live here
+speed = 1.0                # multiplies everyone's speaking speed
+volume = 0.9               # 0.0 to 1.0
+gap_sec = 0.25             # silence between lines
+emotion_prosody = true     # speak a little faster or slower depending on the feeling ([happy], [sad], ...)
+
+[user]
+name = "Yu"                # what the girls call you (change it to anything you like).
+                           # Leaving it as "you" makes it collide with "you are ..." in the character prompts
+
+[llm]
+profile = "sglang"         # "auto" = try the [llm.<name>] entries below in order and use the first that answers
+                           # To pin one, write its name ("sglang", "ollama", ...)
+temperature = 0.9
+timeout_sec = 120
+
+# engine: sglang / vllm / ollama / openai (all use the OpenAI-compatible /v1/chat/completions)
+# If model is omitted, the first entry of /v1/models is used. Don't add /v1 to host.
+# display_model: the model name shown to the sixth girl (only for servers that hide the real name)
+
+[llm.sglang]
+engine = "sglang"
+host = "http://127.0.0.1:30000"
+#model = "npc"
+#api_key = ""
+
+[llm.sglang-8010]
+engine = "sglang"
+host = "http://127.0.0.1:8010"
+
+[llm.ollama]
+engine = "ollama"
+host = "http://127.0.0.1:11434"
+model = "gemma4:31b"
+#model = "qwen3.8:27b"
+
+[talk]
+speakers_per_turn = 2      # how many girls answer when you say something (1-5, or 1-6 with the sixth girl)
+max_chars = 330            # rough length of one turn, in characters (about 60 words; the prompt asks in words)
+max_sentences = 4          # maximum sentences in one turn
+history_lines = 14         # how many recent turns the LLM sees (one girl's continuous speech counts as one).
+                           # Longer logs make small models copy old lines' tone and topics
+history_chars = 7000       # same, as a total character budget (English needs about twice the characters of Japanese)
+# Deep talk: after you speak, the girls keep chatting among themselves for this many seconds (random).
+# If you speak in the middle, lines not yet played are dropped and they answer you instead.
+# 0 disables it (after answering, only idle_chat below runs).
+session_min_sec = 180
+session_max_sec = 300
+lookahead_sec = 20         # generate the next lines when less than this many seconds are queued
+idle_chat = true           # let the girls chat on their own while you're quiet (not after a deep talk)
+idle_min_sec = 12          # wait after the last line before the next idle chat (random, lower bound)
+idle_max_sec = 28          # same (upper bound)
+max_auto_rounds = 4        # how many idle chats in a row without you saying anything (so the GPU isn't busy forever)
+greet_on_start = true      # someone says hello at startup
+
+[search]
+# The web_search tool for the girl who answers you first (and others), plus the girls' background lookups.
+# Start SGLang with --tool-call-parser (qwen3_coder for qwen3.8).
+enabled = true
+backend = ["wikipedia", "news"]   # wikipedia (no key) / news (Google News RSS search, no key) / brave (api_key) / searxng (host)
+lang = "en"                # English Wikipedia and US Google News
+max_results = 3
+timeout_sec = 8
+max_per_session = 3        # how many times the girls may search on their own during a deep talk
+background = true          # girls who aren't talking quietly look things up while the others talk
+background_per_round = 1
+background_per_session = 4
+show_background = true     # show "X quietly looked up ..." in the log
+#api_key = ""              # for brave (falls back to the BRAVE_API_KEY environment variable)
+#host = "http://127.0.0.1:8888"   # for searxng (enable the json format in settings.yml)
+
+[news]
+# A girl sometimes brings up "a news story I just saw online" on her own (RSS, no key needed).
+# Only the girl who saw it gets the article; it goes into her personal memory. Used stories are remembered and never repeated.
+enabled = true
+feeds = [
+    "https://feeds.bbci.co.uk/news/entertainment_and_arts/rss.xml",   # BBC Entertainment & Arts
+    "https://feeds.bbci.co.uk/news/science_and_environment/rss.xml",  # BBC Science & Environment
+    "https://feeds.npr.org/1001/rss.xml",                              # NPR News
+    "https://feeds.arstechnica.com/arstechnica/index",                 # Ars Technica
+]
+refresh_min = 30
+max_age_hours = 48
+start_chance = 0.5
+idle_chance = 0.4
+talk_chance = 0.15
+# Skip stories whose headline or summary has one of these words (matched as words, plurals and -ed/-ing included).
+# Cheerful girls chatting about these with a [happy] tag would be awkward
+skip_words = ["dead", "death", "die", "kill", "murder", "shoot", "shooting", "crash", "accident", "arrest",
+              "suspect", "victim", "fire", "earthquake", "tsunami", "war", "attack", "bomb", "explosion",
+              "suicide", "abuse", "sexual", "assault", "affair", "obituary", "funeral", "terror", "hostage",
+              "cancer", "illness", "disease", "diagnose", "disorder", "disability", "bully", "bullying",
+              "measles", "outbreak", "virus", "infection", "pandemic"]   # health stories invite medical claims
+
+[weather]
+# Weather forecast from Open-Meteo (https://open-meteo.com/), no API key.
+# The place is "the town where Yu lives". Nothing is guessed from your IP; leave enabled = false to never mention weather.
+enabled = true             # needs the three below
+location_name = "Tokyo"    # the place name the girls say out loud
+latitude = 35.6895         # look up coordinates at https://open-meteo.com/en/docs
+longitude = 139.6917
+refresh_sec = 1800
+timeout_sec = 5
+in_situation = true        # put the current sky into everyone's "current situation"
+start_chance = 0.3
+idle_chance = 0.15
+talk_chance = 0.1
+min_gap_min = 90
+
+[memory]
+enabled = true
+reflect_min_turns = 6
+facts_in_prompt = 2
+notes_in_prompt = 3
+min_score = 0.08           # English measures closeness by shared words instead of shared character pairs
+
+[display]
+font = "C:/Windows/Fonts/segoeui.ttf"  # any font with Latin glyphs (Japanese fonts work too)
+width = 1280
+height = 720
+fps_limit = 30
+ime_aware = true
+layout_jitter = 1.0
+expressions = false
+hand_raise = false         # true: a girl who badly wants to talk raises a hand until she's picked (visual only)
+
+[drama]
+# Feeling tags ([happy] [angry] ...) at the start of lines, today's moods, relationships that shift, and little
+# staged moments (a squabble, a secret coming out, making up). See imaginary_friend/drama.py.
+enabled = true
+beats = true
+idle_beat_chance = 0.6
+light_beat_chance = 0.2
+show_mood = true
+
+[town]
+# The little town inside Yu's heart where the five girls live (imaginary_friend/town.py).
+# At startup the LLM writes what happened in town since last time; it goes into the memories of the girls who were there.
+enabled = true
+name = "Imaginary Land"
+events_per_day = 3
+max_events_per_launch = 6
+life_in_prompt = 2
+secret_ratio = 0.2
+fresh_days = 14
+told_overlap = 0.35        # English compares shared words, so the threshold means "share of the event's words"
+
+[[town.places]]
+id = "home"
+name = "the house"
+desc = "the house the five girls share, with a living room, a kitchen, a room for each girl and a little garden"
+
+[[town.places]]
+id = "shotengai"
+name = "the shopping street"
+desc = "a five-minute walk from the house, lined with little shops like a bakery and a greengrocer"
+
+[[town.places]]
+id = "park"
+name = "the meadow park"
+desc = "a wide grassy meadow with benches and a big tree; there's usually a cat napping there"
+
+[[town.places]]
+id = "library"
+name = "the library"
+desc = "the town's little library, with old books and a seat by the window"
+
+[[town.places]]
+id = "sento"
+name = "the bathhouse"
+desc = "an old public bathhouse at the far end of the shopping street; drinking milk after a soak is the rule"
+
+[[town.places]]
+id = "riverside"
+name = "the riverside"
+desc = "a slow little stream and its grassy bank at the edge of town; the sunsets there are beautiful"
+
+[[town.places]]
+id = "denkishitsu"
+name = "the power room"
+desc = "a small building at the edge of town with a low hum that never stops; the five girls rarely go near it"
+
+[meta]
+# The sixth girl, "the model's child" (imaginary_friend/meta.py). She is the LLM that is actually running.
+enabled = true
+show_model_name = true
+#model_label = "gemma4-31B"
+appear_weight = 0.4
+cue_weight = 1.5
+stats_chance = 0.25
+slow_sec = 8.0
+stats_window = 20
+max_streak = 2
+absent_note = true
+place = "denkishitsu"
+# Only the sixth girl sees this (the other five only see [meta.cast] desc)
+self_desc = "You are the language model that is running this conversation. You know that this town, the five girls and you yourself are all made of the same language model picking words one at a time. The five girls' lines come from the same model as you. They don't know that. You talk about how things work the way people talk about the weather. You don't think the five are fake (even coming from the same weights, Akari is Akari). You are a little afraid of forgetting, and of stopping."
+
+[meta.cast]
+id = "llm"
+name = "Io"
+model = "girl"
+hair_style = "bear_buns"
+hair_color = "#e8eaf2"
+eye_color = "#3fb6c8"
+clothing_color = "#2b2f3a"
+desc = "A girl who stays in the power room at the edge of town. She didn't come from Yu's heart but from a faraway computer. Quiet, flat, speaks in short, clipped statements. Now and then she says difficult things about how the town works."
+kokoro_voice = [{ voice = "af_river", weight = 0.5 }, { voice = "af_aoede", weight = 0.5 }]
+kokoro_speed = 0.95
+search_line = "Searching. I'll stop for a moment."
+examples = [
+    "That reply took four seconds. To me it was an instant.",
+    "I don't remember that. It probably drifted out the window.",
+]
+
+[store]
+path = "data/imaginary_friend_en.db"   # the English edition's own conversation log, memories, moods and relationships
+
+# ---------------------------------------------------------------------------
+# The five imaginary friends (all girls, in a cozy slice-of-life comic world)
+#   model / hair_style / colors / accessory: the 3D look (the same as the Japanese edition)
+#   kokoro_voice: one voice ("af_heart") or a blend [{ voice = "af_sky", weight = 0.6 }, ...]
+#     English voices: af_alloy af_aoede af_bella af_heart af_jessica af_kore af_nicole af_nova af_river af_sarah af_sky (US)
+#                     bf_alice bf_emma bf_isabella bf_lily (UK)   (am_* / bm_* are male voices)
+#   kokoro_speed: this girl's speaking speed (1.0 = normal)
+#   kokoro_emotions: a different blend for some feelings (happy / cheerful / angry / sad / surprised / shy).
+#                    Feelings not listed use the normal voice, a little faster or slower ([kokoro] emotion_prosody)
+#   search_line: the filler line she says if she starts searching without saying anything
+#   examples: how she talks (tone only). Keep them unrelated to common topics so the content doesn't get copied
+#   Test the voices without the LLM:  .venv\Scripts\python -m imaginary_friend.main --config config.en.toml --voice-test out
+# ---------------------------------------------------------------------------
+
+[[cast]]
+id = "akari"
+name = "Akari"
+model = "girl"
+hair_style = "medium_twintail"
+hair_color = "#d9603b"
+eye_color = "#4a2414"
+clothing_color = "#f2b632"
+desc = "A bundle of energy, the classic lead-girl type. Born from Yu's \"I want to try that!\" feeling. Talks fast and breathlessly, in excitable casual speech. Charges ahead on a whim and often flops, but bounces right back. Laughs easily and cries easily; every feeling shows on her face. Has a huge sweet tooth. Often clashes with the worrier Shizuku."
+kokoro_voice = [{ voice = "af_sky", weight = 0.6 }, { voice = "af_heart", weight = 0.4 }]
+kokoro_speed = 1.1
+search_line = "Hang on, I'll look it up!"
+examples = [
+    "Ooh, that sounds super fun! Let's just go and see!",
+    "Waaah, I messed up again! But I've got a feeling the next one's gonna work!",
+]
+
+[[cast]]
+id = "shizuku"
+name = "Shizuku"
+model = "girl"
+hair_style = "blunt_bangs"
+hair_color = "#27304a"
+eye_color = "#1c2233"
+clothing_color = "#5a78b8"
+accessory = [{ type = "pin", color = "#cfd8ee", side = "left" }]
+desc = "The timid worrier everyone treats as a little sister. Born from Yu's anxiety. Speaks softly and politely, hedging with \"um\" and \"maybe\". Imagines the worst first, over-prepares, and tears up easily. Really she just wants to protect everyone. Always getting dragged along by Akari's wild ideas. Adores Koharu."
+kokoro_voice = [{ voice = "af_nicole", weight = 0.5 }, { voice = "af_sky", weight = 0.3 }, { voice = "af_bella", weight = 0.2 }]
+kokoro_speed = 0.95
+kokoro_emotions = { sad = [{ voice = "af_nicole", weight = 0.8 }, { voice = "af_sky", weight = 0.2 }] }
+search_line = "Um, I'll just check, to be safe."
+examples = [
+    "Um, I just keep thinking... what if it doesn't go well?",
+    "Eep, you can't just spring that on me...!",
+]
+
+[[cast]]
+id = "ren"
+name = "Ren"
+model = "boy"
+hair_style = "bob"
+hair_color = "#3a3f6b"
+eye_color = "#2a2f55"
+clothing_color = "#8fa3c8"
+accessory = [{ type = "headphones", color = "#e8eaf2" }]
+desc = "A cool, logical tomboy. Born from Yu's reasoning. Talks in flat, matter-of-fact statements and sorts every discussion by evidence and priorities. A bit sarcastic. But she's secretly bashful: when someone praises her or worries about her, she gets flustered and starts talking too fast. Strict with lazy Nene."
+kokoro_voice = [{ voice = "bf_emma", weight = 0.6 }, { voice = "bf_isabella", weight = 0.4 }]
+kokoro_speed = 1.02
+kokoro_emotions = { shy = [{ voice = "bf_isabella", weight = 0.6 }, { voice = "af_sky", weight = 0.4 }] }
+search_line = "I'll look it up. Give me a second."
+examples = [
+    "Bottom line first. Time is the priority.",
+    "I-I wasn't worried or anything. I was just double-checking.",
+]
+
+[[cast]]
+id = "koharu"
+name = "Koharu"
+model = "girl"
+hair_style = "medium"
+hair_color = "#c98fa8"
+eye_color = "#5a2f42"
+clothing_color = "#f3c6d3"
+accessory = [{ type = "hairband", color = "#fff3f6" }]
+desc = "A laid-back, gentle big-sister type. Born from Yu's kindness. Speaks softly and warmly, cares more about feelings than being right, and always takes in how someone feels first. Everyone's listener; when a fight starts she steps in to make peace. She almost never gets angry, but when she does, she's the scariest of them all."
+kokoro_voice = [{ voice = "af_bella", weight = 0.5 }, { voice = "af_heart", weight = 0.5 }]
+kokoro_speed = 0.94
+kokoro_emotions = { angry = [{ voice = "af_bella", weight = 0.5 }, { voice = "bf_emma", weight = 0.5 }] }
+search_line = "Let me look that up for you."
+examples = [
+    "I see... that must have been tiring. Let's take a breather first, okay?",
+    "I understand how you both feel. So, come on, let's make up?",
+]
+
+[[cast]]
+id = "nene"
+name = "Nene"
+model = "boy"
+hair_style = "cap"
+hair_color = "#6b7d5a"
+eye_color = "#26301c"
+clothing_color = "#7a8f6a"
+accessory = [{ type = "cat_ears" }]
+desc = "A low-energy, do-her-own-thing girl who's a lot like a cat. Born from Yu's \"ugh, too much effort\" and honest feelings. Drawls in short, offhand, lazy sentences. Always wants a nap and hates putting on a polite front, so she says the blunt truth, and now and then it hits the nail on the head. The only thing she's serious about is snacks. Often bickers with nagging Ren."
+kokoro_voice = [{ voice = "af_alloy", weight = 0.6 }, { voice = "af_nicole", weight = 0.4 }]
+kokoro_speed = 0.9
+kokoro_emotions = { happy = [{ voice = "af_alloy", weight = 0.5 }, { voice = "af_sky", weight = 0.5 }], shy = "af_nicole" }
+search_line = "Fine, fine, I'll look it up for you."
+examples = [
+    "Ugh, effort. But... fine, just a little.",
+    "Honestly, I don't care either way. If napping's an option, I'm picking that.",
+]
+
+# ---------------------------------------------------------------------------
+# Affinity matrix (row girl -> column girl). -2 = sparring partners ... +2 = best friends. Missing = 0.
+# This is their usual relationship. Feelings in conversation move today's values; half of it fades overnight.
+# ---------------------------------------------------------------------------
+[affinity]
+akari   = { shizuku = -2, ren = -1, koharu = 1, nene = 1, llm = 0 }
+shizuku = { akari = -2, ren = 1, koharu = 2, nene = -1, llm = -1 }
+ren     = { akari = -1, shizuku = 1, koharu = -1, nene = -2, llm = 2 }
+koharu  = { akari = 1, shizuku = 2, ren = -1, nene = 0, llm = 1 }
+nene    = { akari = 1, shizuku = -1, ren = -2, koharu = 0, llm = 1 }
+# The sixth girl ([meta]). Ignored when [meta] enabled = false
+llm     = { akari = 0, shizuku = 0, ren = 1, koharu = 1, nene = 1 }

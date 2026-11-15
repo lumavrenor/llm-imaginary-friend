@@ -1,0 +1,25 @@
+# Extra packages for the English edition ([tts] backend = "kokoro" in config.en.toml).
+# Not needed for the Japanese edition (VOICEVOX). Install on top of requirements.txt:
+#     pip install -r requirements.txt -r requirements-en.txt
+#     python -m spacy download en_core_web_sm
+# (go.bat en / ./go.sh en does this for you on the first run.)
+#
+# The model itself (kokoro-v1.0.onnx 310MB / voices-v1.0.bin 27MB) is downloaded into
+# [kokoro] model_dir on the first run.
+
+onnxruntime>=1.20,<2
+misaki>=0.7,<1
+spacy>=3.8,<4
+
+# misaki uses num2words to read numbers (imported at module level, so it is required).
+# LGPL-2.1: the only non-MIT/Apache package in this set.
+# 0.5.15 / 0.5.16 were published with malware after the maintainer was phished
+# (GHSA-jxr6-qrxx-2ph2 / MAL-2025-6794 / PYSEC-2025-72, 2025-07-31). They were removed from PyPI,
+# but exclude them explicitly so a mirror or an old cache can't hand them out.
+num2words>=0.5.14,!=0.5.15,!=0.5.16,<0.6
+
+# Fallback G2P for words missing from the dictionary (Apache-2.0, no torch).
+# nltk 3.10.3 has GHSA-8mgp-746c-j5xp (2026-09-02, HIGH, unfixed), but it needs an app that
+# enables pathsec and lets untrusted input pick a model path. This app only reads the fixed
+# tagger and CMUdict, so it doesn't apply. Follow the fixed release when it comes out.
+g2p_en>=2.1,<3

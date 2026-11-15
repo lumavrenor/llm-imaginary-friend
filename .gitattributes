@@ -1,0 +1,6 @@
+# Line endings for the launch scripts, whatever the cloner's core.autocrlf is
+# (and in GitHub's "Download ZIP" too).
+#   .sh  must be LF   (bash fails on CRLF with $'\r' errors)
+#   .bat must be CRLF (cmd.exe can misread goto labels in LF-only batch files)
+*.sh  text eol=lf
+*.bat text eol=crlf
